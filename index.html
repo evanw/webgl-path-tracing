@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html><head>
+  <title>WebGL Path Tracing</title>
+  <style type="text/css"><!--
+
+body {
+  max-width: 900px;
+  padding: 30px;
+  margin: 0 auto;
+  font: 14px/19px 'Lucida Grande', sans-serif;
+}
+
+#main {
+  margin: 80px 0;
+  padding-left: 542px;
+  height: 512px;
+  position: relative;
+}
+
+#error {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 412px;
+  height: 412px;
+  padding: 50px;
+  text-align: center;
+  background: #DFDFDF;
+}
+
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+p, ul {
+  margin: 0 0 30px 0;
+}
+
+h1 {
+  font: bold italic 50px Georgia;
+  margin: 0 0 60px 0;
+  text-align: center;
+}
+
+a {
+  color: inherit;
+}
+
+#footer {
+  text-align: center;
+  margin: 100px 0 0 0;
+}
+
+#glossiness-factor {
+  display: none;
+  font-size: 12px;
+}
+
+#glossiness-factor input {
+  width: 40px;
+  text-align: center;
+}
+
+  --></style>
+  <script type="text/javascript" src="sylvester.src.js"></script>
+  <script type="text/javascript" src="glUtils.js"></script>
+  <script type="text/javascript" src="webgl-path-tracing.js"></script>
+</head><body>
+  <h1>WebGL Path Tracing</h1>
+
+  <p>Path tracing is a realistic lighting algorithm that simulates light bouncing around a scene.&nbsp; This path tracer uses WebGL for realtime performance and supports diffuse, mirrored, and glossy surfaces.&nbsp; The path tracer is continually rendering, so the scene will start off grainy and become smoother over time.&nbsp; Here's how to interact with it:</p>
+
+  <ul>
+    <li>Add an object using the "Add Sphere" or "Add Cube" buttons</li>
+    <li>Select an object by clicking on it</li>
+    <li>Move the selection along the face of its selection box by dragging around on that face</li>
+    <li>Delete the selection using the backspace key</li>
+    <li>Rotate the camera by dragging the background</li>
+  </ul>
+
+  <div id="main">
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <div id="error"><noscript>Please enable JavaScript.</noscript></div>
+
+    <p>
+      <button onclick="javascript:ui.selectLight()">Select Light</button>
+      <button onclick="javascript:ui.addSphere()">Add Sphere</button>
+      <button onclick="javascript:ui.addCube()">Add Cube</button>
+    </p>
+
+    <p>
+      <b>Material:</b>
+      <select id="material">
+        <option value="0" selected>Diffuse</option>
+        <option value="1">Mirror</option>
+        <option value="2">Glossy</option>
+      </select>
+      <span id="glossiness-factor">
+        <br>with glossiness factor: 0 &lt; <input id="glossiness" value="0.6"> &lt; 1
+      </span>
+      <br>
+
+      <b>Environment:</b>
+      <select id="environment">
+        <option value="0" selected>Cornell Box - Yellow and Blue</option>
+        <option value="1">Cornell Box - Red and Green</option>
+      </select>
+    </p>
+
+    <p>
+      <b>Load preset scene:</b>
+      <br><button onclick="javascript:ui.setObjects(makeSphereColumn())">Sphere Column</button>
+      <br><button onclick="javascript:ui.setObjects(makeSpherePyramid())">Sphere Pyramid</button>
+      <br><button onclick="javascript:ui.setObjects(makeSphereAndCube())">Sphere and Cube</button>
+      <br><button onclick="javascript:ui.setObjects(makeCubeAndSpheres())">Cube and Spheres</button>
+      <br><button onclick="javascript:ui.setObjects(makeTableAndChair())">Table and Chair</button>
+      <br><button onclick="javascript:ui.setObjects(makeStacks())">Stacks</button>
+    </p>
+  </div>
+
+  <p>The entire scene is dynamically compiled into a GLSL shader.&nbsp; Everything can be repositioned using the current shader, but any geometry or material change means a recompilation.&nbsp; To calculate a pixel color, a ray is shot into the scene and allowed to bounce around five times.&nbsp; At each bounce, the direct light incoming at that point (including shadows) is multiplied by all previous material colors and accumulated.&nbsp; Soft shadows are achieved by randomly jittering the light position per-pixel.&nbsp; <s>The path tracing solution will never completely converge however, because WebGL doesn't yet support floating point textures.</s>&nbsp; <b>Update:</b> Browsers have now implemented OES_texture_float and the image does converge.</p>
+  <p id="footer">Made by <a href="/">Evan Wallace</a> in 2010</p>
+</body></html>
