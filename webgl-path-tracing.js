@@ -70,6 +70,7 @@ var bounces = '5';
 var epsilon = '0.0001';
 var infinity = '10000.0';
 var lightSize = 0.1;
+var lightVal = 0.5;
 
 // vertex shader, interpolate ray per-pixel
 var tracerVertexSource =
@@ -148,6 +149,25 @@ var randomSource =
 '   return fract(sin(dot(gl_FragCoord.xyz + seed, scale)) * 43758.5453 + seed);' +
 ' }';
 
+// random cosine-weighted distributed vector
+// from http://www.rorydriscoll.com/2009/01/07/better-sampling/
+var cosineWeightedDirectionSource =
+' vec3 cosineWeightedDirection(float seed, vec3 normal) {' +
+'   float u = random(vec3(12.9898, 78.233, 151.7182), seed);' +
+'   float v = random(vec3(63.7264, 10.873, 623.6736), seed);' +
+'   float r = sqrt(u);' +
+'   float angle = 6.283185307179586 * v;' +
+    // compute basis from normal
+'   vec3 sdir, tdir;' +
+'   if (abs(normal.x)<.5) {' +
+'     sdir = cross(normal, vec3(1,0,0));' +
+'   } else {' +
+'     sdir = cross(normal, vec3(0,1,0));' +
+'   }' +
+'   tdir = cross(normal, sdir);' +
+'   return r*cos(angle)*sdir + r*sin(angle)*tdir + sqrt(1.-u)*normal;' +
+' }';
+
 // random normalized vector
 var uniformlyRandomDirectionSource =
 ' vec3 uniformlyRandomDirection(float seed) {' +
@@ -173,8 +193,7 @@ var specularReflection =
 
 // update ray using normal and bounce according to a diffuse reflection
 var newDiffuseRay =
-' ray = uniformlyRandomDirection(timeSinceStart + float(bounce));' +
-' if(dot(normal, ray) < 0.0) ray = -ray;';
+' ray = cosineWeightedDirection(timeSinceStart + float(bounce), normal);';
 
 // update ray using normal according to a specular reflection
 var newReflectiveRay =
@@ -249,14 +268,14 @@ function makeCalculateColor(objects) {
 
       // do light bounce
 '     colorMask *= surfaceColor;' +
-'     accumulatedColor += colorMask * (diffuse * shadowIntensity);' +
-'     accumulatedColor += specularHighlight * shadowIntensity;' +
+'     accumulatedColor += colorMask * (' + lightVal + ' * diffuse * shadowIntensity);' +
+'     accumulatedColor += colorMask * specularHighlight * shadowIntensity;' +
 
       // calculate next origin
 '     origin = hit;' +
 '   }' +
 
-'   return accumulatedColor * 0.5;' +
+'   return accumulatedColor;' +
 ' }';
 }
 
@@ -277,6 +296,7 @@ function makeTracerFragmentSource(objects) {
   intersectSphereSource +
   normalForSphereSource +
   randomSource +
+  cosineWeightedDirectionSource +
   uniformlyRandomDirectionSource +
   uniformlyRandomVectorSource +
   makeShadow(objects) +
