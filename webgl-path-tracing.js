@@ -30,6 +30,9 @@
 // shader strings
 ////////////////////////////////////////////////////////////////////////////////
 
+var gamma = 2.2;
+var invGamma = 1/gamma;
+
 // vertex shader for drawing a textured quad
 var renderVertexSource =
 ' attribute vec3 vertex;' +
@@ -46,6 +49,7 @@ var renderFragmentSource =
 ' uniform sampler2D texture;' +
 ' void main() {' +
 '   gl_FragColor = texture2D(texture, texCoord);' +
+'   gl_FragColor.rgb = pow( gl_FragColor.rgb*0.7, vec3( ' + invGamma + ' ) );' +
 ' }';
 
 // vertex shader for drawing a line
@@ -145,8 +149,11 @@ var normalForSphereSource =
 
 // use the fragment position for randomness
 var randomSource =
-' float random(vec3 scale, float seed) {' +
-'   return fract(sin(dot(gl_FragCoord.xyz + seed, scale)) * 43758.5453 + seed);' +
+' highp float random(highp vec3 scale, float seed) {' +
+'   highp float d = 43758.5453;' +
+'   highp float dt = dot(gl_FragCoord.xyz + seed,scale);' +
+'   highp float sn = mod(dt,3.1415926);' +
+'   return fract(sin(sn) * d);' +
 ' }';
 
 // random cosine-weighted distributed vector
@@ -208,12 +215,12 @@ var newGlossyRay =
 ' specularHighlight = pow(specularHighlight, 3.0);';
 
 var yellowBlueCornellBox =
-' if(hit.x < -0.9999) surfaceColor = vec3(0.1, 0.5, 1.0);' + // blue
-' else if(hit.x > 0.9999) surfaceColor = vec3(1.0, 0.9, 0.1);'; // yellow
+' if(hit.x < -0.9999) surfaceColor = pow(vec3(0.1, 0.5, 1.0), vec3(' + gamma + '));' + // blue
+' else if(hit.x > 0.9999) surfaceColor = pow(vec3(1.0, 0.9, 0.1), vec3(' + gamma + '));'; // yellow
 
 var redGreenCornellBox =
-' if(hit.x < -0.9999) surfaceColor = vec3(1.0, 0.3, 0.1);' + // red
-' else if(hit.x > 0.9999) surfaceColor = vec3(0.3, 1.0, 0.1);'; // green
+' if(hit.x < -0.9999) surfaceColor = pow(vec3(1.0, 0.3, 0.1), vec3(' + gamma + '));' + // red
+' else if(hit.x > 0.9999) surfaceColor = pow(vec3(0.3, 1.0, 0.1), vec3(' + gamma + '));'; // green
 
 function makeShadow(objects) {
   return '' +
@@ -261,7 +268,7 @@ function makeCalculateColor(objects) {
 
       // compute diffuse lighting contribution
 '     vec3 toLight = light - hit;' +
-'     float diffuse = max(0.0, dot(normalize(toLight), normal));' +
+'     float diffuse = max(0.0, dot(normalize(toLight), normal))/dot(toLight,toLight);' +
 
       // trace a shadow ray to the light
 '     float shadowIntensity = shadow(hit + normal * ' + epsilon + ', toLight);' +
@@ -712,7 +719,7 @@ PathTracer.prototype.update = function(matrix, timeSinceStart) {
   this.uniforms.ray01 = getEyeRay(matrix, -1, +1);
   this.uniforms.ray10 = getEyeRay(matrix, +1, -1);
   this.uniforms.ray11 = getEyeRay(matrix, +1, +1);
-  this.uniforms.timeSinceStart = timeSinceStart;
+  this.uniforms.timeSinceStart = ( timeSinceStart % 46735.275 ) / 1000; // prevent huge values being crunched in the shader
   this.uniforms.textureWeight = this.sampleCount / (this.sampleCount + 1);
 
   // set uniforms
