@@ -664,15 +664,39 @@ function PathTracer() {
   // create framebuffer
   this.framebuffer = gl.createFramebuffer();
 
-  // create textures
   var type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
+  var format = gl.RGB;
+
+  // Rendering to float texture formats is not necessarily supported. Check support.
+  var testTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, testTexture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 512, 512, 0, gl.RGB, type, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, testTexture, 0);
+  var rgbFloatSupported = (type == gl.FLOAT && gl.checkFramebufferStatus == gl.FRAMEBUFFER_COMPLETE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, type, null);
+  var rgbaFloatSupported = (type == gl.FLOAT && gl.checkFramebufferStatus == gl.FRAMEBUFFER_COMPLETE);
+
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, null, 0);
+  gl.deleteTexture(testTexture);
+
+  if (!rgbFloatSupported && !rgbaFloatSupported) {
+    type = gl.UNSIGNED_BYTE;
+  } else if (!rgbFloatSupported) {
+    // RGBA float is preferred to RGB fixed-point.
+    format = gl.RGBA;
+  }
+
+  // create textures
   this.textures = [];
   for(var i = 0; i < 2; i++) {
       this.textures.push(gl.createTexture());
     gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 512, 512, 0, gl.RGB, type, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, 512, 512, 0, format, type, null);
   }
   gl.bindTexture(gl.TEXTURE_2D, null);
 
