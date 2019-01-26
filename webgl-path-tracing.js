@@ -228,7 +228,7 @@ function makeCalculateColor(objects) {
 ' vec3 calculateColor(vec3 origin, vec3 ray, vec3 light) {' +
 '   vec3 colorMask = vec3(1.0);' +
 '   vec3 accumulatedColor = vec3(0.0);' +
-  
+
     // main raytracing loop
 '   for(int bounce = 0; bounce < ' + bounces + '; bounce++) {' +
       // compute the intersection with everything
@@ -448,7 +448,7 @@ Sphere.prototype.getIntersectCode = function() {
 
 Sphere.prototype.getShadowTestCode = function() {
   return '' +
-  this.getIntersectCode() + 
+  this.getIntersectCode() +
 ' if(' + this.intersectStr + ' < 1.0) return 0.0;';
 };
 
@@ -528,7 +528,7 @@ Cube.prototype.getIntersectCode = function() {
 
 Cube.prototype.getShadowTestCode = function() {
   return '' +
-  this.getIntersectCode() + 
+  this.getIntersectCode() +
 ' if(' + this.intersectStr + '.x > 0.0 && ' + this.intersectStr + '.x < 1.0 && ' + this.intersectStr + '.x < ' + this.intersectStr + '.y) return 0.0;';
 };
 
@@ -665,14 +665,22 @@ function PathTracer() {
   this.framebuffer = gl.createFramebuffer();
 
   // create textures
-  var type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
+  var type = gl.UNSIGNED_BYTE;
+  if (gl.getExtension('EXT_color_buffer_half_float')) {
+    const ext = gl.getExtension('OES_texture_half_float');
+    type = ext.HALF_FLOAT_OES;
+  }
+  if (gl.getExtension('WEBGL_color_buffer_float')) {
+    gl.getExtension('OES_texture_float');
+    type = gl.FLOAT;
+  }
   this.textures = [];
   for(var i = 0; i < 2; i++) {
       this.textures.push(gl.createTexture());
     gl.bindTexture(gl.TEXTURE_2D, this.textures[i]);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 512, 512, 0, gl.RGB, type, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, type, null);
   }
   gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -1122,10 +1130,10 @@ function addRecursiveSpheresBranch(objects, center, radius, depth, dir) {
   if(depth--) {
     if(dir != XNEG) addRecursiveSpheresBranch(objects, center.subtract(Vector.create([radius * 1.5, 0, 0])), radius / 2, depth, XPOS);
     if(dir != XPOS) addRecursiveSpheresBranch(objects, center.add(Vector.create([radius * 1.5, 0, 0])),      radius / 2, depth, XNEG);
-    
+
     if(dir != YNEG) addRecursiveSpheresBranch(objects, center.subtract(Vector.create([0, radius * 1.5, 0])), radius / 2, depth, YPOS);
     if(dir != YPOS) addRecursiveSpheresBranch(objects, center.add(Vector.create([0, radius * 1.5, 0])),      radius / 2, depth, YNEG);
-    
+
     if(dir != ZNEG) addRecursiveSpheresBranch(objects, center.subtract(Vector.create([0, 0, radius * 1.5])), radius / 2, depth, ZPOS);
     if(dir != ZPOS) addRecursiveSpheresBranch(objects, center.add(Vector.create([0, 0, radius * 1.5])),      radius / 2, depth, ZNEG);
   }
