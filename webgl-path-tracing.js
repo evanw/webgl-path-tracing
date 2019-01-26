@@ -665,7 +665,15 @@ function PathTracer() {
   this.framebuffer = gl.createFramebuffer();
 
   // create textures
-  var type = gl.getExtension('OES_texture_float') ? gl.FLOAT : gl.UNSIGNED_BYTE;
+  var type = gl.UNSIGNED_BYTE;
+  if (gl.getExtension('EXT_color_buffer_half_float')) {
+    const ext = gl.getExtension('OES_texture_half_float');
+    type = ext.HALF_FLOAT_OES;
+  }
+  if (gl.getExtension('WEBGL_color_buffer_float')) {
+    gl.getExtension('OES_texture_float');
+    type = gl.FLOAT;
+  }
   this.textures = [];
   for(var i = 0; i < 2; i++) {
       this.textures.push(gl.createTexture());
